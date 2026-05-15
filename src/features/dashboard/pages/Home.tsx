@@ -17,10 +17,8 @@ import {
 } from 'lucide-react';
 import { useData } from '../../../context/DataContext';
 import WelcomeModal from '../../../components/ui/WelcomeModal';
-import LazyChart from '../../../components/ui/LazyChart';
 import StatusBadge from '../../../components/tables/StatusBadge';
 import { formatPrice, useCurrencyPreference } from '../../../utils/currencyPreference';
-import type { Invoice, Checkout } from '../../../types';
 import type { LucideIcon } from 'lucide-react';
 
 // ── Filter helpers ────────────────────────────────────────────────────────────
@@ -39,40 +37,6 @@ function getStartDate(key: string): Date {
     return new Date(0);
 }
 
-// Build last-6-months revenue data from paid invoices + paid checkouts
-function buildRevenueChart(invoices: Invoice[], checkouts: Checkout[]) {
-    const months = [];
-    const labels = [];
-    const now = new Date();
-
-    for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        labels.push(d.toLocaleString('default', { month: 'short', year: '2-digit' }));
-        months.push({ year: d.getFullYear(), month: d.getMonth() });
-    }
-
-    const totals = months.map(({ year, month }) => {
-        const invTotal = invoices
-            .filter(inv => inv.status === 'paid' && inv.paidAt)
-            .filter(inv => {
-                const d = new Date(inv.paidAt as string);
-                return d.getFullYear() === year && d.getMonth() === month;
-            })
-            .reduce((sum: number, inv: Invoice) => sum + parseFloat((inv.amount || '0').replace(/,/g, '')), 0);
-
-        const chkTotal = checkouts
-            .filter(c => c.status === 'paid' && c.updatedAt)
-            .filter(c => {
-                const d = new Date(c.updatedAt as string);
-                return d.getFullYear() === year && d.getMonth() === month;
-            })
-            .reduce((sum: number, c: Checkout) => sum + parseFloat(c.amount || '0'), 0);
-
-        return invTotal + chkTotal;
-    });
-
-    return { labels, totals };
-}
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 
@@ -159,34 +123,6 @@ function Home() {
 
     const activeFilterLabel = FILTERS.find(f => f.key === txFilter)?.label || 'Last month';
 
-    // Revenue chart data
-    const { labels: chartLabels, totals: chartTotals } = buildRevenueChart(invoices, checkouts);
-    const chartData = {
-        labels: chartLabels,
-        datasets: [{
-            label: 'Revenue',
-            data: chartTotals,
-            fill: true,
-            borderColor: '#6366f1',
-            backgroundColor: 'rgba(99,102,241,0.08)',
-            borderWidth: 2,
-            pointRadius: 4,
-            pointBackgroundColor: '#6366f1',
-            tension: 0.4,
-        }],
-    };
-    const chartOptions = {
-        plugins: { legend: { display: false } },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: { maxTicksLimit: 5, callback: (v: number) => formatPrice(v, displayCurrency) },
-                grid: { color: 'rgba(0,0,0,0.04)' },
-            },
-            x: { grid: { display: false } },
-        },
-    };
-
     return (
         <div className="max-w-[1100px]">
             <WelcomeModal />
@@ -194,55 +130,6 @@ function Home() {
             <h1 className="text-xl font-medium text-t-primary mb-6">
                 Welcome to Tradazone
             </h1>
-
-            {/* ── Summary stat cards ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <StatCard
-                    icon={Users}
-                    label="Total Customers"
-                    value={customers.length}
-                    color="text-purple-500"
-                />
-                <StatCard
-                    icon={FileText}
-                    label="Total Invoices"
-                    value={invoices.length}
-                    sub={`${paidInvoices.length} paid · ${pendingInvoices.length} pending`}
-                    color="text-brand"
-                />
-                <StatCard
-                    icon={ShoppingCart}
-                    label="Active Checkouts"
-                    value={activeCheckouts}
-                    sub={`${checkouts.length} total`}
-                    color="text-accent-orange"
-                />
-                <StatCard
-                    icon={TrendingUp}
-                    label="Total Revenue"
-                    value={formatPrice(totalAllTime, displayCurrency)}
-                    color="text-green-500"
-                />
-            </div>
-
-            {/* ── Invoice breakdown chips ── */}
-            <div className="flex flex-wrap gap-3 mb-6">
-                {[
-                    { icon: CheckCircle, label: 'Paid',    count: paidInvoices.length,    color: 'text-green-600 bg-green-50' },
-                    { icon: Clock,       label: 'Pending', count: pendingInvoices.length,  color: 'text-amber-600 bg-amber-50' },
-                    { icon: AlertCircle, label: 'Overdue', count: overdueInvoices.length,  color: 'text-red-600 bg-red-50' },
-                    { icon: XCircle,     label: 'Unpaid',  count: unpaidInvoices.length,   color: 'text-t-muted bg-page' },
-                ].map(({ icon: Icon, label, count, color }) => (
-                    <Link
-                        key={label}
-                        to="/invoices"
-                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${color} hover:opacity-80 transition-opacity`}
-                    >
-                        <Icon size={13} />
-                        {count} {label}
-                    </Link>
-                ))}
-            </div>
 
             {/* ── Top Row: revenue total + receivable ── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -297,39 +184,54 @@ function Home() {
                             }}
                         />
                     </div>
-                    <div className="flex gap-10 mt-auto">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs text-t-muted font-medium">Collected</span>
-                            <span className="text-base font-bold text-t-primary">
-                                {formatPrice(totalAllTime, displayCurrency)}
-                            </span>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs text-t-muted font-medium">Unpaid</span>
-                            <span className="text-base font-bold text-t-primary">
-                                {formatPrice(receivables, displayCurrency)}
-                            </span>
-                        </div>
+                    <div className="flex flex-wrap gap-2 mt-auto">
+                        {[
+                            { icon: CheckCircle, label: 'Paid',    count: paidInvoices.length,   color: 'text-green-600 bg-green-50' },
+                            { icon: Clock,       label: 'Pending', count: pendingInvoices.length, color: 'text-amber-600 bg-amber-50' },
+                            { icon: AlertCircle, label: 'Overdue', count: overdueInvoices.length, color: 'text-red-600 bg-red-50' },
+                            { icon: XCircle,     label: 'Unpaid',  count: unpaidInvoices.length,  color: 'text-t-muted bg-page' },
+                        ].map(({ icon: Icon, label, count, color }) => (
+                            <Link
+                                key={label}
+                                to="/invoices"
+                                className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold ${color} hover:opacity-80 transition-opacity`}
+                            >
+                                <Icon size={13} />
+                                {count} {label}
+                            </Link>
+                        ))}
                     </div>
                 </div>
             </div>
 
-            {/* ── Revenue Over Time chart ── */}
-            <div className="bg-white border border-border rounded-card p-6 mb-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp size={18} strokeWidth={1.8} className="text-brand" />
-                    <h2 className="text-sm font-semibold text-t-primary">Revenue Over Time</h2>
-                    <span className="text-xs text-t-muted ml-auto">Last 6 months</span>
-                </div>
-                {chartTotals.every(v => v === 0) ? (
-                    <div className="flex flex-col items-center justify-center h-[200px] text-center">
-                        <TrendingUp size={32} className="text-t-muted/30 mb-3" strokeWidth={1.5} />
-                        <p className="text-sm font-medium text-t-secondary">No revenue data yet</p>
-                        <p className="text-xs text-t-muted">Chart will populate as you receive payments.</p>
-                    </div>
-                ) : (
-                    <LazyChart type="line" data={chartData} options={chartOptions} height={200} />
-                )}
+            {/* ── Summary stat cards ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <StatCard
+                    icon={Users}
+                    label="Total Customers"
+                    value={customers.length}
+                    color="text-purple-500"
+                />
+                <StatCard
+                    icon={FileText}
+                    label="Total Invoices"
+                    value={invoices.length}
+                    sub={`${paidInvoices.length} paid · ${pendingInvoices.length} pending`}
+                    color="text-brand"
+                />
+                <StatCard
+                    icon={ShoppingCart}
+                    label="Active Checkouts"
+                    value={activeCheckouts}
+                    sub={`${checkouts.length} total`}
+                    color="text-accent-orange"
+                />
+                <StatCard
+                    icon={TrendingUp}
+                    label="Total Revenue"
+                    value={formatPrice(totalAllTime, displayCurrency)}
+                    color="text-green-500"
+                />
             </div>
 
             {/* ── Recent Transactions ── */}
@@ -369,7 +271,7 @@ function Home() {
             </div>
 
             {/* ── Quick Actions ── */}
-            <div className="bg-white border border-border rounded-card px-6 py-8">
+            <div className="bg-white border border-border rounded-card px-6 py-8 mb-6">
                 <div className="flex items-center justify-center gap-2 font-semibold text-sm mb-6">
                     <Zap size={18} className="text-accent-orange" />
                     <span className="text-t-primary">Quick action</span>
