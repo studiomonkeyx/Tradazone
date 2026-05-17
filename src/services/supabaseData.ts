@@ -199,6 +199,17 @@ export const invoicesService = {
     handleError('invoices.getPublic', error);
     return data ? invoiceFromDb(data as DbRow) : null;
   },
+  async markPaid(id: string, tx: { hash: string; network: string; amount: string; currency: string }): Promise<void> {
+    const { error } = await supabase.from('invoices').update({
+      status:      'paid',
+      paid_at:     new Date().toISOString(),
+      tx_hash:     tx.hash,
+      tx_network:  tx.network,
+      tx_amount:   tx.amount,
+      tx_currency: tx.currency,
+    }).eq('id', id);
+    handleError('invoices.markPaid', error);
+  },
 };
 
 // ── Checkouts ──────────────────────────────────────────────────────────────

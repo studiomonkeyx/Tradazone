@@ -95,31 +95,6 @@ function InvoicePreview() {
                 </div>
             </div>
 
-            {/* Pay CTA banner — visible to recipient, hidden when printing */}
-            {invoice.status !== 'paid' && (
-                <div className="print:hidden bg-brand/5 border-b border-brand/20 px-6 py-4">
-                    <div className="max-w-[794px] mx-auto flex items-center justify-between gap-4">
-                        <div>
-                            <p className="text-sm font-semibold text-t-primary">
-                                Invoice {invoice.id} · <span className="text-brand">{invoice.amount} {invoice.currency} due</span>
-                            </p>
-                            <p className="text-xs text-t-muted mt-0.5">
-                                Pay securely with crypto — Ethereum, Starknet, or Stellar
-                            </p>
-                        </div>
-                        <a
-                            href={`https://tradazone.github.io/Tradazone/pay/invoice/${id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-brand text-white text-sm font-bold hover:bg-brand/90 active:scale-95 transition-all flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-                        >
-                            <CreditCard size={16} />
-                            Pay This Invoice
-                        </a>
-                    </div>
-                </div>
-            )}
-
             {/* Invoice A4 Page */}
             <div className="py-10 px-4 print:p-0">
                 <InvoiceLayout

@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle, ChevronDown, AlertCircle, Download } from 'lucide-react';
-import { useData } from '../../../context/DataContext';
 import { useAuth } from '../../../context/AuthContext';
 import { priceService } from '../../../services/priceService';
 import { generateReceipt } from '../../../utils/generateReceipt';
+import api from '../../../services/api';
 import Logo from '../../../components/ui/Logo';
 import ConnectWalletModal from '../../../components/ui/ConnectWalletModal';
 
@@ -129,18 +129,41 @@ function NotFoundScreen() {
     );
 }
 
+// ─── Loading screen ───────────────────────────────────────────────────────────
+
+function LoadingScreen() {
+    return (
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+            <header className="bg-brand py-4 flex items-center justify-center">
+                <Logo variant="dark" className="h-7" />
+            </header>
+            <div className="flex-1 flex items-center justify-center">
+                <span className="w-8 h-8 border-4 border-brand/20 border-t-brand rounded-full animate-spin" />
+            </div>
+        </div>
+    );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 function InvoiceCheckout() {
     const { invoiceId } = useParams();
-    const { invoices, customers, markInvoicePaid } = useData();
     const { connectWallet, wallet } = useAuth();
 
-    const invoice  = invoices.find(inv => inv.id === invoiceId);
-    const customer = customers.find(c => c.id === invoice?.customerId);
+    // ── Invoice fetch (public — no auth required)
+    const [invoice,         setInvoice]         = useState(null);
+    const [invoiceFetching, setInvoiceFetching] = useState(true);
+
+    useEffect(() => {
+        if (!invoiceId) { setInvoiceFetching(false); return; }
+        api.invoices.getPublic(invoiceId)
+            .then(data  => setInvoice(data))
+            .catch(()   => setInvoice(null))
+            .finally(() => setInvoiceFetching(false));
+    }, [invoiceId]);
 
     // ── Form state
-    const [email,   setEmail]   = useState(customer?.email || '');
+    const [email,   setEmail]   = useState('');
     const [country, setCountry] = useState('United States');
 
     // ── Pricing state
@@ -257,12 +280,12 @@ function InvoiceCheckout() {
                 hash = submit.hash;
             }
 
-            markInvoicePaid(invoiceId, {
+            api.invoices.markPaid(invoiceId, {
                 hash,
                 network:  selectedCrypto === 'ETH' ? 'evm' : selectedCrypto === 'STRK' ? 'starknet' : 'stellar',
                 amount:   cryptoAmount,
                 currency: selectedCrypto,
-            });
+            }).catch(console.error);
 
             setTxHash(hash);
             setPaymentStatus('success');
@@ -275,6 +298,7 @@ function InvoiceCheckout() {
     };
 
     // ── Early returns ─────────────────────────────────────────────────────────
+    if (invoiceFetching) return <LoadingScreen />;
     if (!invoice) return <NotFoundScreen />;
 
     if (paymentStatus === 'success' || invoice.status === 'paid') {

@@ -17,6 +17,7 @@ import {
   ReactNode,
 } from 'react';
 import { useAuth } from './AuthContext';
+import { supabase } from '../lib/supabase';
 import {
   customersService,
   itemsService,
@@ -152,6 +153,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
     fetchAll();
     return () => { cancelled = true; };
   }, [isAuthenticated, walletAddress]);
+
+  // ── Re-fetch when the real Supabase session becomes available ─────────────
+  // The wallet connect flow fires authenticateWithSupabase() in the background.
+  // By the time setSession() completes, the effect above has already run with
+  // an unauthenticated connection (RLS returns zero rows). Listening here ensures
+  // we reload data the moment the authenticated session is actually established.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event !== 'SIGNED_IN') return;
+      const addr = session?.user?.user_metadata?.wallet_address as string | undefined;
+      if (!addr) return;
+      try {
+        const [cust, inv, chk, itm] = await Promise.all([
+          customersService.list(addr),
+          invoicesService.list(addr),
+          checkoutsService.list(addr),
+          itemsService.list(addr),
+        ]);
+        setCustomers(cust);
+        setInvoices(inv);
+        setCheckouts(chk);
+        setItems(itm);
+        invoiceCountRef.current  = inv.length;
+        checkoutCountRef.current = chk.length;
+      } catch (err) {
+        if (import.meta.env.DEV) console.error('[DataContext] Post-auth fetch failed:', err);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   // ── Customers ────────────────────────────────────────────────────────────
 

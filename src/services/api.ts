@@ -77,6 +77,7 @@ const api = {
         upsert:    (walletAddress: string, inv: Invoice)  => invoicesService.upsert(walletAddress, inv),
         delete:    (id: string)                           => invoicesService.delete(id),
         getPublic: (id: string)                           => invoicesService.getPublic(id),
+        markPaid:  (id: string, tx: { hash: string; network: string; amount: string; currency: string }) => invoicesService.markPaid(id, tx),
     },
     checkouts: {
         list:           (walletAddress: string)               => checkoutsService.list(walletAddress),
