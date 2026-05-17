@@ -123,20 +123,19 @@ function NotFoundScreen({ invoiceId = '', debugError = '' }) {
                     <p className="text-t-muted text-sm">
                         This payment link is invalid or the invoice has been removed.
                     </p>
-                    {(invoiceId || debugError) && (
-                        <div className="mt-6 text-left bg-gray-50 border border-border rounded p-3 space-y-1">
-                            {invoiceId && (
-                                <p className="text-xs font-mono text-t-muted">
-                                    <span className="font-semibold">Looking up:</span> {invoiceId}
-                                </p>
-                            )}
-                            {debugError && (
-                                <p className="text-xs font-mono text-red-500 break-all">
-                                    <span className="font-semibold">Error:</span> {debugError}
-                                </p>
-                            )}
-                        </div>
-                    )}
+                    <div className="mt-6 text-left bg-gray-50 border border-border rounded p-3 space-y-1">
+                        <p className="text-xs font-mono text-t-muted break-all">
+                            <span className="font-semibold">URL:</span> {window.location.pathname}
+                        </p>
+                        <p className="text-xs font-mono text-t-muted">
+                            <span className="font-semibold">Invoice ID:</span> "{invoiceId}"
+                        </p>
+                        {debugError && (
+                            <p className="text-xs font-mono text-red-500 break-all">
+                                <span className="font-semibold">Error:</span> {debugError}
+                            </p>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
