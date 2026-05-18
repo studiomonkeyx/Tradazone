@@ -12,7 +12,6 @@
 
 import { useState, useCallback } from "react";
 import { isConnected, getPublicKey } from "@lobstrco/signer-extension-api";
-import { waitForLobstr } from "../utils/detectLobstr";
 
 // ---------------------------------------------------------------------------
 // Type definitions
@@ -144,43 +143,40 @@ export function useLobstr() {
     setIsConnecting(true);
 
     try {
-      // Step 1: Confirm the extension injected `window.lobstr` within 3 s
-      const detected = await waitForLobstr(3000);
+      // Step 1: Detect the extension via postMessage timing.
+      // isConnected() sends a postMessage and waits up to 2000ms for the
+      // extension content script to reply. When installed, it replies in <100ms.
+      // When not installed, it always takes the full 2000ms timeout.
+      // Racing against 1500ms lets us distinguish the two cases reliably.
+      const detected = await Promise.race([
+        isConnected().then(() => true),
+        new Promise((resolve) => setTimeout(() => resolve(false), 1500)),
+      ]);
+
       if (!detected) {
         throw new Error("NOT_INSTALLED");
       }
 
-      // Step 2: Soft-check connection state (does not prompt the user)
-      const connectionResult = await isConnected();
-      if (!connectionResult) {
-        // Extension present but may be locked — attempt anyway; getPublicKey
-        // will surface the LOCKED error if the vault is sealed.
-        console.warn("LOBSTR isConnected() returned false, attempting connection anyway...");
-      }
-
-      // Step 3: Request the public key — this prompts the user in the extension
+      // Step 2: Request the public key — this prompts the user in the extension
       const pkResult = await getPublicKey();
 
-      // Step 4: Normalise the response into a plain address string
+      // Step 3: Normalise the response into a plain address string.
+      // The library returns a plain G-address string directly.
       let address = "";
       if (typeof pkResult === "string" && pkResult.startsWith("G")) {
-        // Plain G-address string
         address = pkResult;
       } else if (pkResult && pkResult.publicKey) {
-        // Object form: { publicKey: "GABC..." }
         address = pkResult.publicKey;
       } else if (pkResult && pkResult.error) {
-        // Object form: { error: "LOCKED" | "ACCESS_DENIED" | ... }
         throw new Error(pkResult.error);
       }
 
       if (!address) {
-        // getPublicKey resolved but returned nothing usable — treat as denial
         throw new Error("ACCESS_DENIED");
       }
 
       /** @type {'PUBLIC' | 'TESTNET'} */
-      const currentNetwork = "PUBLIC"; // LOBSTR targets Stellar mainnet only
+      const currentNetwork = "PUBLIC";
 
       setPublicKey(address);
       setNetwork(currentNetwork);
@@ -188,9 +184,11 @@ export function useLobstr() {
       return { success: true, address, network: currentNetwork };
 
     } catch (err) {
-      console.error("[LOBSTR] Error:", err.message);
-      setError(err.message);
-      return { success: false, error: err.message };
+      // The library throws plain strings (e.g. "LOCKED"), not Error objects.
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[LOBSTR] Error:", message);
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setIsConnecting(false);
     }
