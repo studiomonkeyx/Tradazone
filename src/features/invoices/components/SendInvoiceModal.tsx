@@ -5,9 +5,11 @@ import Button from '../../../components/forms/Button';
 import Input from '../../../components/forms/Input';
 import { sendInvoiceToCustomer } from '../../../services/emailService';
 import { useData } from '../../../context/DataContext';
+import { useAuth } from '../../../context/AuthContext';
 
 function SendInvoiceModal({ isOpen, onClose, invoice, customer }) {
     const { sendInvoice } = useData();
+    const { user } = useAuth();
 
     const [customerEmail, setCustomerEmail] = useState(customer?.email || '');
     const [status, setStatus] = useState('idle'); // idle | loading | success | error
@@ -29,7 +31,8 @@ function SendInvoiceModal({ isOpen, onClose, invoice, customer }) {
                 ...invoice,
                 customerEmail: customerEmail.trim(),
                 customer: customer?.name || invoice.customer,
-                senderName: 'Tradazone',
+                senderName: user?.name || 'Tradazone',
+                senderEmail: user?.email || '',
             });
 
             if (result.success) {

@@ -41,6 +41,7 @@ export async function sendInvoiceToCustomer(invoice: InvoiceLike): Promise<Email
   return send(TMPL_INVOICE, {
     to_name:              invoice.customer,
     to_email:             invoice.customerEmail ?? '',
+    reply_to:             invoice.senderEmail ?? '',
     invoice_id:           invoice.id,
     invoice_amount:       invoice.amount,
     invoice_currency:     invoice.currency,
