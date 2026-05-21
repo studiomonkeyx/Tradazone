@@ -45,12 +45,15 @@ function PrivateRoute({ children }) {
     const [cachedSession, setCachedSession] = useState(null);
     const [sessionChecked, setSessionChecked] = useState(false);
 
-    // Only run expensive loadSession check once on mount and when pathname changes
+    // Run session check only after auth has finished loading, and again on route changes.
+    // Skipping while authLoading prevents a false "session expired" when Google OAuth
+    // resolves asynchronously and saveSession() hasn't run yet on the first render.
     useEffect(() => {
+        if (authLoading) return;
         const liveSession = loadSession();
         setCachedSession(liveSession);
         setSessionChecked(true);
-    }, [location.pathname]);
+    }, [location.pathname, authLoading]);
 
     // Only mark session as expired after initial check and if session became null
     const sessionExpired = sessionChecked && user.isAuthenticated && cachedSession === null;
