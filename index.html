@@ -7,10 +7,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tradazone</title>
   <script>
-    // Force a fresh load whenever a new build is deployed.
-    // Fetches version.json with cache bypassed; if the build ID changed
-    // since the user's last visit, location.reload(true) discards the
-    // cached index.html and pulls the latest assets.
+    // Service worker: intercepts every HTML navigation and fetches it from the
+    // network so index.html is never served from a stale browser cache.
+    // controllerchange fires when a new SW takes over → reload to get fresh HTML.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        window.location.reload();
+      });
+      navigator.serviceWorker.register('./sw.js').catch(function () {});
+    }
+
+    // Belt-and-suspenders: version-file check for browsers that block SW.
     (function () {
       fetch('./version.json?_=' + Date.now(), { cache: 'no-store' })
         .then(function (r) { return r.json(); })
@@ -18,7 +25,7 @@
           var k = 'tz_build';
           var prev = localStorage.getItem(k);
           localStorage.setItem(k, d.v);
-          if (prev && prev !== d.v) { location.reload(true); }
+          if (prev && prev !== d.v) { window.location.reload(true); }
         })
         .catch(function () {});
     })();
