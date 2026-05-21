@@ -108,18 +108,19 @@ function ConnectWalletModal({ isOpen, onClose, onConnect, connectWalletFn }) {
 
     if (!isOpen) return null;
 
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
     // WalletConnect v2 — shown only when VITE_WALLETCONNECT_PROJECT_ID is set
     const wcProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
     const wcEntry = wcProjectId ? [{
-        id:          'walletconnect',
-        name:        'WalletConnect',
-        network:     'evm',
-        networkName: 'Any EVM wallet (mobile-friendly)',
-        isInstalled: true,
-        isSecondary: false,
+        id:           'walletconnect',
+        name:         'WalletConnect',
+        network:      'evm',
+        networkName:  isMobile ? 'Scan QR with MetaMask, Phantom & more' : 'Any EVM wallet (mobile-friendly)',
+        isInstalled:  true,
+        isSecondary:  false,
+        isRecommended: isMobile,
     }] : [];
-
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     const adjustWalletList = (wallets) => {
         return wallets.map(w => {
@@ -139,6 +140,36 @@ function ConnectWalletModal({ isOpen, onClose, onConnect, connectWalletFn }) {
 
     const handleConnect = async (w) => {
         if (connecting) return;
+
+        // ── Mobile interception ────────────────────────────────────────────────
+        // Extension wallets cannot inject on mobile. Route the user to the
+        // wallet's in-app browser (MetaMask / Phantom) or show a clear desktop
+        // prompt (LOBSTR / Argent X — desktop-extension-only).
+        if (isMobile && !w.isInstalled && w.id !== 'walletconnect') {
+            // MetaMask universal link: opens site inside MetaMask's in-app browser,
+            // or redirects to the App Store / Play Store if not installed.
+            if (w.id === 'metamask') {
+                window.open(
+                    `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`,
+                    '_blank',
+                    'noopener,noreferrer'
+                );
+                return;
+            }
+            // Phantom deep-link: opens site inside Phantom's in-app browser.
+            if (w.id === 'phantom') {
+                window.open(
+                    `https://phantom.app/ul/browse/${encodeURIComponent(window.location.href)}?ref=${encodeURIComponent(window.location.origin)}`,
+                    '_blank',
+                    'noopener,noreferrer'
+                );
+                return;
+            }
+            // LOBSTR and Argent X are desktop-browser-extension-only — no mobile
+            // deep-link equivalent. Show a clear instructional message.
+            setError({ type: w.network, code: 'mobile_unsupported', wallet: w.name });
+            return;
+        }
 
         if (w.id === 'stellar') {
             const result = await lobstr.connect();
@@ -324,14 +355,14 @@ function ConnectWalletModal({ isOpen, onClose, onConnect, connectWalletFn }) {
                             </button>
                         )}
 
-                        {/* Error */}
+                        {/* Error — desktop extension not found */}
                         {error?.code === 'not_installed' && (
                             <div className="mt-4 p-3 bg-error-bg border border-error/20 flex items-start gap-2 text-sm text-error">
                                 <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
                                 <div>
                                     <p className="font-medium">
-                                        {error.type === 'stellar' ? 'LOBSTR is not installed.' :
-                                         error.type === 'starknet' ? 'Argent X is not installed.' :
+                                        {error.type === 'stellar' ? 'LOBSTR extension not detected.' :
+                                         error.type === 'starknet' ? 'Argent X extension not detected.' :
                                          'Wallet extension not detected.'}
                                     </p>
                                     {(error.type === 'stellar' || error.type === 'starknet') && (
@@ -344,6 +375,27 @@ function ConnectWalletModal({ isOpen, onClose, onConnect, connectWalletFn }) {
                                             Install extension <ExternalLink size={12} />
                                         </a>
                                     )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Error — desktop-only wallet tapped on mobile */}
+                        {error?.code === 'mobile_unsupported' && (
+                            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 flex items-start gap-2 text-sm text-amber-900">
+                                <AlertCircle size={16} className="flex-shrink-0 mt-0.5 text-amber-600" />
+                                <div>
+                                    <p className="font-medium">{error.wallet} requires a desktop browser.</p>
+                                    <p className="mt-1 text-amber-800">
+                                        {error.wallet} is a browser extension that only works on desktop (Chrome, Firefox, or Brave).
+                                        Visit this page on a desktop browser to connect, or use{' '}
+                                        <button
+                                            className="font-semibold underline"
+                                            onClick={() => { setError(null); setView('primary'); }}
+                                        >
+                                            WalletConnect
+                                        </button>
+                                        {' '}for EVM wallets on mobile.
+                                    </p>
                                 </div>
                             </div>
                         )}
