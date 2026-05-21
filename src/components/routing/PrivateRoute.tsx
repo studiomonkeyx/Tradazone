@@ -37,7 +37,7 @@ import { loadSession } from '../../context/AuthContext';
  *   re-render. Tests added in src/test/PrivateRoute.test.jsx.
  */
 function PrivateRoute({ children }) {
-    const { user, logout } = useAuth();
+    const { user, logout, authLoading } = useAuth();
     const location = useLocation();
 
     // Cache loadSession result to avoid calling it on every render
@@ -61,6 +61,9 @@ function PrivateRoute({ children }) {
     const [expiredPath, setExpiredPath] = useState(
         sessionExpired ? location.pathname : null
     );
+
+    // Wait for the initial Supabase session check before making redirect decisions
+    if (authLoading) return null;
 
     // Handle expired session
     if (sessionExpired) {

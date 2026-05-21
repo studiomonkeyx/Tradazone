@@ -517,6 +517,9 @@ export function AuthProvider({ children }) {
     /** @type {[string | null, React.Dispatch<React.SetStateAction<string | null>>]} */
     const [lastWallet, setLastWallet] = useState(null);
 
+    /** True until the initial Supabase session check completes — prevents PrivateRoute from redirecting before auth is resolved. */
+    const [authLoading, setAuthLoading] = useState(true);
+
     useEffect(() => {
         // Prefer Supabase session; fall back to legacy sessionStorage
         supabase.auth.getSession().then(({ data: { session } }) => {
@@ -569,6 +572,7 @@ export function AuthProvider({ children }) {
             }
             const storedLastWallet = localStorage.getItem(WALLET_KEY);
             if (storedLastWallet) setLastWallet(storedLastWallet);
+            setAuthLoading(false);
         });
 
         // Listen for Google / OAuth sign-in events (e.g. after OAuth redirect)
@@ -1323,11 +1327,13 @@ export function AuthProvider({ children }) {
         walletType,
         lastWallet,
         isConnecting,
+        authLoading,
     }), [
         wallet,
         walletType,
         lastWallet,
         isConnecting,
+        authLoading,
     ]);
 
     const authWalletCatalogValue = useMemo(() => ({
