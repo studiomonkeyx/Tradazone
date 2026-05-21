@@ -125,9 +125,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // ── Fetch from Supabase on auth ──────────────────────────────────────────
 
   useEffect(() => {
-    if (!isAuthenticated || !walletAddress) { setDataLoading(false); return; }
+    if (!isAuthenticated || !walletAddress) {
+      // Clear all data when user logs out so next wallet starts fresh
+      setCustomers([]);
+      setInvoices([]);
+      setCheckouts([]);
+      setItems([]);
+      invoiceCountRef.current  = 0;
+      checkoutCountRef.current = 0;
+      setDataLoading(false);
+      return;
+    }
     let cancelled = false;
     async function fetchAll() {
+      // Clear previous wallet's data before fetching new wallet's data
+      setCustomers([]);
+      setInvoices([]);
+      setCheckouts([]);
+      setItems([]);
+      invoiceCountRef.current  = 0;
+      checkoutCountRef.current = 0;
       setDataLoading(true);
       try {
         await migrateLocalDataToSupabase(walletAddress as string);

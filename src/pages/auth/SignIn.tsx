@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -32,9 +32,9 @@ function SignIn() {
         : null;
 
     return (
-        <div className="min-h-screen flex">
+        <div className="min-h-screen flex flex-col lg:flex-row">
             {/* ── Left Panel ── */}
-            <div className="w-full lg:w-[40%] flex flex-col justify-start px-6 py-8 lg:px-10 lg:py-10 bg-white overflow-y-auto">
+            <div className="w-full lg:w-[40%] flex flex-col justify-start px-6 py-8 lg:px-10 lg:py-10 bg-white lg:overflow-y-auto">
                 {/* Logo */}
                 <div className="mb-8 lg:mb-12">
                     <Logo variant="light" className="h-7 lg:h-9" />
@@ -83,7 +83,7 @@ function SignIn() {
             </div>
 
             {/* ── Right Panel — Illustration ── */}
-            <div className="hidden lg:block lg:w-[60%] bg-gray-50 relative overflow-hidden">
+            <div className="flex-1 min-h-[300px] lg:h-auto lg:w-[60%] bg-gray-50 relative overflow-hidden">
                 <img
                     src={illustration}
                     alt="Tradazone — invoices, payments, crypto"

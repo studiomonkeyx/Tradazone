@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { X, ExternalLink, AlertCircle, ChevronLeft } from 'lucide-react';
 import Logo from './Logo';
@@ -119,9 +119,23 @@ function ConnectWalletModal({ isOpen, onClose, onConnect, connectWalletFn }) {
         isSecondary: false,
     }] : [];
 
-    const primaryWallets   = [...availableWallets.filter((w) => !w.isSecondary), ...wcEntry];
-    const secondaryWallets = availableWallets.filter((w) => w.isSecondary);
-    const walletsToShow    = view === 'primary' ? primaryWallets : secondaryWallets;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    const adjustWalletList = (wallets) => {
+        return wallets.map(w => {
+            // On mobile, if an extension wallet is not installed (e.g. running in Safari, not an in-app browser),
+            // demote it to secondary to push the user towards WalletConnect.
+            if (isMobile && !w.isInstalled && w.id !== 'walletconnect') {
+                return { ...w, isSecondary: true };
+            }
+            return w;
+        });
+    };
+
+    const adjustedWallets = adjustWalletList([...availableWallets, ...wcEntry]);
+    const primaryWallets = adjustedWallets.filter(w => !w.isSecondary);
+    const secondaryWallets = adjustedWallets.filter(w => w.isSecondary);
+    const walletsToShow = view === 'primary' ? primaryWallets : secondaryWallets;
 
     const handleConnect = async (w) => {
         if (connecting) return;
@@ -148,6 +162,12 @@ function ConnectWalletModal({ isOpen, onClose, onConnect, connectWalletFn }) {
                     projectId:   import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
                     chains:      [1],
                     showQrModal: true,
+                    metadata: {
+                        name: 'Tradazone',
+                        description: 'Connect to Tradazone',
+                        url: window.location.origin,
+                        icons: [`${window.location.origin}/favicon.png`]
+                    }
                 });
                 await provider.connect();
                 const accounts = provider.accounts;
