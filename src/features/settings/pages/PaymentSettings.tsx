@@ -33,7 +33,7 @@ const CURRENCY_NAMES = {
 };
 
 function PaymentSettings() {
-    const { wallet, walletType, connectWallet, disconnectWallet } = useAuth();
+    const { wallet, walletType, connectWallet, disconnectWallet, user } = useAuth();
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -46,6 +46,17 @@ function PaymentSettings() {
     const [saveLabel,   setSaveLabel]   = useState('Save preference');
 
     const isStellar = walletType === 'stellar';
+
+    const getWalletLabel = () => {
+        if (!wallet.isConnected) {
+            if (user?.email) return user.email.split('@')[0];
+            return 'No wallet connected';
+        }
+        if (walletType === 'stellar')  return 'LOBSTR Wallet';
+        if (walletType === 'starknet') return 'Argent Wallet';
+        if (walletType === 'evm')      return 'EVM Wallet';
+        return 'Connected Wallet';
+    };
 
     const handleSwitchNetwork = async () => {
         await disconnectWallet();
@@ -88,7 +99,7 @@ function PaymentSettings() {
                 </div>
                 <div className="flex-1">
                     <div className="text-sm font-semibold">
-                        {isStellar ? 'Freighter Wallet' : 'Argent Wallet'}
+                        {getWalletLabel()}
                     </div>
                     <div className="text-xs text-t-muted font-mono">
                         {wallet.isConnected ? wallet.address : 'Not connected'}

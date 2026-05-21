@@ -5,13 +5,23 @@ import Button from '../../../components/forms/Button';
 import { useAuth } from '../../../context/AuthContext';
 
 function ProfileSettings() {
-    const { user } = useAuth();
+    const { user, updateProfile } = useAuth();
     const [formData, setFormData] = useState({
-        name: user.name || '', email: user.email || '', phone: '', company: '', address: ''
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        company: user.company || '',
+        address: user.address || '',
     });
+    const [saved, setSaved] = useState(false);
 
     const handleChange = (field) => (e) => { setFormData({ ...formData, [field]: e.target.value }); };
-    const handleSubmit = (e) => { e.preventDefault(); console.log('Saving profile:', formData); };
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        updateProfile(formData);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+    };
 
     return (
         <div>
@@ -27,8 +37,8 @@ function ProfileSettings() {
                 </div>
                 <Input label="Business Address" placeholder="Enter your business address" value={formData.address} onChange={handleChange('address')} />
                 <div className="flex justify-end gap-3 pt-4 border-t border-border">
-                    <Button variant="secondary">Cancel</Button>
-                    <Button type="submit" variant="primary">Save Changes</Button>
+                    <Button variant="secondary" type="button" onClick={() => setFormData({ name: user.name || '', email: user.email || '', phone: user.phone || '', company: user.company || '', address: user.address || '' })}>Cancel</Button>
+                    <Button type="submit" variant="primary">{saved ? '✓ Saved' : 'Save Changes'}</Button>
                 </div>
             </form>
         </div>

@@ -535,15 +535,32 @@ export function AuthProvider({ children }) {
                 }));
                 setWallet({ address: addr, isConnected: true, balance: '0', currency, chainId: '' });
                 setWalletType(walletType);
+            } else if (session?.user) {
+                // Google / OAuth / email user — no wallet address in metadata
+                const email  = session.user.email || meta?.email || '';
+                const name   = meta?.full_name || meta?.name || email.split('@')[0] || '';
+                const avatar = meta?.avatar_url || meta?.picture || null;
+                const userData = normalizeUserData({
+                    id: session.user.id,
+                    name,
+                    email,
+                    avatar,
+                    isAuthenticated: true,
+                    walletAddress: null,
+                    walletType: null,
+                });
+                setUser(userData);
+                setWalletType(null);
+                saveSession(userData);
             } else {
-                // Legacy fallback
+                // No Supabase session — try legacy local session
                 const saved = loadSession();
                 if (saved) {
                     setUser(saved);
                     setWallet({
                         ...EMPTY_WALLET,
                         address:     saved.walletAddress || '',
-                        currency:    saved.walletType === 'stellar' ? 'XLM' : 'STRK',
+                        currency:    saved.walletType === 'stellar' ? 'XLM' : saved.walletType === 'evm' ? 'ETH' : 'STRK',
                         isConnected: !!saved.walletAddress,
                         chainId:     saved.walletType === 'stellar' ? 'stellar' : '',
                     });
@@ -553,6 +570,32 @@ export function AuthProvider({ children }) {
             const storedLastWallet = localStorage.getItem(WALLET_KEY);
             if (storedLastWallet) setLastWallet(storedLastWallet);
         });
+
+        // Listen for Google / OAuth sign-in events (e.g. after OAuth redirect)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+                const meta = session.user?.user_metadata;
+                if (!meta?.wallet_address && session.user) {
+                    const email  = session.user.email || meta?.email || '';
+                    const name   = meta?.full_name || meta?.name || email.split('@')[0] || '';
+                    const avatar = meta?.avatar_url || meta?.picture || null;
+                    const userData = normalizeUserData({
+                        id: session.user.id,
+                        name,
+                        email,
+                        avatar,
+                        isAuthenticated: true,
+                        walletAddress: null,
+                        walletType: null,
+                    });
+                    setUser(userData);
+                    setWalletType(null);
+                    saveSession(userData);
+                }
+            }
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     // ── Wallet Detection ─────────────────────────────────────────────────────
@@ -673,7 +716,7 @@ export function AuthProvider({ children }) {
                 return currentUser; // Already completed, no-op
             }
 
-            const currency = type === "stellar" ? "XLM" : "STRK";
+            const currency = type === "stellar" ? "XLM" : type === "evm" ? "ETH" : "STRK";
             const chainId  = type === "stellar" ? "stellar" : "";
 
             /** @type {WalletState} */

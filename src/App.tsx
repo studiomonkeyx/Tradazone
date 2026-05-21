@@ -179,6 +179,7 @@ function App() {
                 <Route path="checkout/:id" element={<CheckoutDetail />} />
               </Route>
               <Route path="settings" element={<Settings />}>
+                <Route index element={<Navigate to="profile" replace />} />
                 <Route path="profile" element={<ProfileSettings />} />
                 <Route path="payments" element={<PaymentSettings />} />
                 <Route path="notifications" element={<NotificationSettings />} />
