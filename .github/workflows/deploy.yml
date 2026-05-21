@@ -55,6 +55,9 @@ jobs:
           cache: "npm"
       - run: npm ci --legacy-peer-deps
 
+      - name: Stamp build version
+        run: echo "{\"v\":\"${{ github.sha }}\"}" > public/version.json
+
       - name: Build
         run: npm run build
         env:

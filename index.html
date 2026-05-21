@@ -5,10 +5,24 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
   <title>Tradazone</title>
+  <script>
+    // Force a fresh load whenever a new build is deployed.
+    // Fetches version.json with cache bypassed; if the build ID changed
+    // since the user's last visit, location.reload(true) discards the
+    // cached index.html and pulls the latest assets.
+    (function () {
+      fetch('./version.json?_=' + Date.now(), { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var k = 'tz_build';
+          var prev = localStorage.getItem(k);
+          localStorage.setItem(k, d.v);
+          if (prev && prev !== d.v) { location.reload(true); }
+        })
+        .catch(function () {});
+    })();
+  </script>
   <meta name="description" content="Tradazone makes receiving local and international payments easier for African entrepreneurs using cryptocurrency." />
 
   <!-- Open Graph / Facebook / LinkedIn / WhatsApp / Telegram / Discord -->
