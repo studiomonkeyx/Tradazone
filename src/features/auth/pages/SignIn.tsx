@@ -46,6 +46,16 @@ function SignIn() {
         <div className="min-h-screen flex">
             {/* ── Left Panel ── */}
             <div className="w-full lg:w-[40%] flex flex-col justify-start px-6 py-8 lg:px-10 lg:py-10 bg-white overflow-y-auto">
+
+                {/* Mobile illustration banner */}
+                <div className="lg:hidden -mx-6 -mt-8 mb-8 h-44 overflow-hidden">
+                    <img
+                        src={illustration}
+                        alt=""
+                        className="w-full h-full object-cover object-center"
+                    />
+                </div>
+
                 {/* Logo */}
                 <div className="mb-8 lg:mb-12">
                     <Logo variant="light" className="h-7 lg:h-9" />

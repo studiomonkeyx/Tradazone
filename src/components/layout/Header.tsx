@@ -1,10 +1,17 @@
 ﻿// @ts-nocheck
-import { Bell, Menu } from 'lucide-react';
+import { Bell, Menu, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Logo from '../ui/Logo';
 
 function Header({ onMenuToggle }) {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/signin');
+    };
 
     return (
         <header className="h-header bg-brand fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-5 lg:px-6">
@@ -21,10 +28,18 @@ function Header({ onMenuToggle }) {
                 <Logo variant="dark" className="h-7" />
             </div>
 
-            {/* Right: Bell + Avatar */}
-            <div className="flex items-center gap-4">
+            {/* Right: Bell + Logout (mobile) + Avatar */}
+            <div className="flex items-center gap-2 lg:gap-4">
                 <button className="w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:bg-white/10 transition-colors">
                     <Bell size={22} />
+                </button>
+                {/* Sign out — mobile only; desktop uses the sidebar button */}
+                <button
+                    className="lg:hidden w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:bg-white/10 transition-colors"
+                    onClick={handleLogout}
+                    aria-label="Sign out"
+                >
+                    <LogOut size={20} />
                 </button>
                 <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/30 flex-shrink-0">
                     <img
